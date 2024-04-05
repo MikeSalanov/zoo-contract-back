@@ -3,15 +3,17 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    const adminsLogins = ['admin@log.in'];
-    const adminsPasswords = ['Test1234'];
-    const adminsData = adminsLogins.map(((login, i) => ({
-      login,
-      password: adminsPasswords[i],
+    const isWeekend = [false, false, true, true];
+    const isAdult = [false, true, false, true];
+    const prices = [15, 20, 20, 25];
+    const tariffsData = prices.map(((price, i) => ({
+      price,
+      is_weekend: isWeekend[i],
+      is_adult: isAdult[i],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })));
-    return queryInterface.bulkInsert('Admins', adminsData);
+    return queryInterface.bulkInsert('Tariffs', tariffsData);
     /**
      * Add seed commands here.
      *
