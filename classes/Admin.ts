@@ -72,6 +72,7 @@ export class Admin {
   async addImageToDataBase(imageUrl: string): Promise<void> {
     try {
       const imagesFromDB: Array<ImageFromDBEntityType> = await Image.findAll({
+        attributes: ['id', 'url', 'animal_id'],
         where: {
           url: imageUrl
         },
@@ -108,37 +109,35 @@ export class Admin {
     return await uploadFileToFirebase(buffer, mimetype, originalname);
   }
   
-  async findAnimals(id: number | null): Promise<Array<ParsedDataOfAnimalsFromDBType>> {
+  static async findAnimals(id: number | null): Promise<Array<ParsedDataOfAnimalsFromDBType>> {
     let animalsFromDB: Array<UnparsedDataOfAnimalsFromDBType>;
+    let parsedAnimalsObjects: Array<ParsedDataOfAnimalsFromDBType> = [];
     if (id) {
       animalsFromDB = await Animal.findAll({
         where: { id },
         attributes: ['id', 'name', 'description'],
-        include: [{
-          model: Image,
-          attributes: ['id', 'url']
-        }],
         raw: true
       });
-      console.log(animalsFromDB);
     } else {
       animalsFromDB = await Animal.findAll({
         attributes: ['id', 'name', 'description'],
-        include: [{
-          model: Image,
-          attributes: ['id', 'url']
-        }],
         raw: true
       });
     }
-    const newArrayWithAnimals: Array<ParsedDataOfAnimalsFromDBType> = animalsFromDB.map(animal => ({
-      id: animal.id,
-      name: animal.name,
-      description: animal.description,
-      image_id: animal['Images.id'],
-      image_url: animal['Images.url'],
-    }));
-    return newArrayWithAnimals;
+    for (const animal of animalsFromDB) {
+      const imagesOfAnimal: Array<string> = (await Image.findAll({
+        where: {
+          animal_id: animal.id
+        },
+        attributes: ['url'],
+        raw: true
+      })).map((objectOfImage: { url: string }) => objectOfImage.url);
+      parsedAnimalsObjects.push({
+        ...animal,
+        image_urls: imagesOfAnimal
+      });
+    }
+    return parsedAnimalsObjects;
   }
   
   async createAnimal(name: string, description: string): Promise<boolean> {
@@ -156,6 +155,18 @@ export class Admin {
     }
   }
   
+  async getAllImages(): Promise<Array<ImageFromDBEntityType>> {
+    try {
+      return await Image.findAll({
+        attributes: ['id', 'url', 'animal_id'],
+        raw: true
+      });
+    } catch (err) {
+      console.log(err);
+      return [];
+    }
+  }
+  
   async editAnimal(animalId: number, objectForEditDataInDB: RequestOfEditAnimalType): Promise<boolean> {
     if (objectForEditDataInDB) {
       const animalFromDB: Array<{
@@ -168,7 +179,7 @@ export class Admin {
           id: animalId
         }, raw: true
       });
-      if (!animalFromDB) return false;
+      if (!animalFromDB.length) return false;
       await Animal.update(
         objectForEditDataInDB,
         { where: { id: animalId } }
