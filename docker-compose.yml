@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://postgres:Test1234@db:5432/zoo
+      JWT_ACCESS_SECRET: 1a05f9a4-ff87-4a84-80a6-43e173d82173
+      JWT_REFRESH_SECRET: 3a1e4eda-b969-4ea0-86b1-65b4fb8f0f41
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Test1234
+      POSTGRES_DB: zoo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
